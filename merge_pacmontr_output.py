@@ -8,23 +8,23 @@ def load_trs(trbed):
     trs = {}
     with open(trbed,'r') as fh:
         for line in fh:
-        line = line.rstrip().split('\t')
-        chrom = line[0]
-        start = int(line[1])
-        end = int(line[2])
-        motif_seq = line[4]
-        if "/" in motif_seq:
-            motif_seq = motif_seq.split("/")[0]
-        copies_in_ref = line[5]
-        trs[(chrom,start,end,motif_seq,copies_in_ref)] = []
+            line = line.rstrip().split('\t')
+            chrom = line[0]
+            start = line[1]
+            end = line[2]
+            motif_seq = line[4]
+            if "/" in motif_seq:
+                motif_seq = motif_seq.split("/")[0]
+            copies_in_ref = line[5]
+            trs[(chrom,start,end,motif_seq,copies_in_ref)] = []
     return trs
 
 def score_filtered_copies(pacmonstr_tr,hap_copy,hap_score,min_score):
     copies = []
-    prefix_scores = map(float,getattr(pacmonstr_tr,hap_score[0]))
-    suffix_scores = map(float,getattr(pacmonstr_tr,hap_score[1]))
-    motif_scores = map(float,getattr(pacmonstr_tr,hap_score[2]))
-    hap_copies =  map(float,getattr(pacmonstr_tr,hap_copy))
+    prefix_scores = map(float,getattr(pacmonstr_tr,hap_score[0]).split(','))
+    suffix_scores = map(float,getattr(pacmonstr_tr,hap_score[1]).split(','))
+    motif_scores = map(float,getattr(pacmonstr_tr,hap_score[2]).split(','))
+    hap_copies =  map(float,getattr(pacmonstr_tr,hap_copy).split(','))
     for p,s,m,c in zip(prefix_scores,suffix_scores,motif_scores,hap_copies):        
         if min([p,s,m]) > min_score:
             copies.append(c)
@@ -38,34 +38,40 @@ def filter_by_stat(copies,stat):
         return max(copies)
     else:
         sys.exit("Choose avg or max")
-    
+
+def hap_copy(copies,hap_copies,hap_scores,min_score,stat):
+    copy = None
+    if min_score > 0:
+        all_copies = score_filtered_copies(pacmonstr_tr,hap_copies,hap_scores,min_score)
+    else:
+        all_copies = copies
+    if len(all_copies) != 0:
+        copy = filter_by_stat(all_copies,stat)
+    return copy
+        
 def sample_tr_copies(pacmonstr_tr,min_score,stat):
     copies = []
     hap_copies = ["hap0_copies","hap1_copies","hap2_copies"]
     hap0_scores = [("hap0_prefix_motif_scores","hap0_suffix_motif_scores","hap0_motif_scores")]
     hap1_scores = [("hap1_prefix_motif_scores","hap1_suffix_motif_scores","hap1_motif_scores")]
     hap2_scores = [("hap2_prefix_motif_scores","hap2_suffix_motif_scores","hap2_motif_scores")]
-    if getattr(pacmonstr_tr,"hap1_copies") == "." and getattr(pacmonstr_tr,"hap2_copies") == ".":        
-        if getattr(pacmonstr_tr,"hap0_copies") != ".":
-            copies = getattr(pacmonstr_tr,"hap0_copies")
-            if min_score > 0:
-                copies = score_filtered_copies(pacmonstr_tr,"hap0_copies",hap0_scores,min_score)
-            if len(copies) > 0:
-                copies = filter_by_stat(copies,stat)
+    if getattr(pacmonstr_tr,"hap1_copies") == "None" and getattr(pacmonstr_tr,"hap2_copies") == "None":        
+        if getattr(pacmonstr_tr,"hap0_copies") != "None":
+            copies = map(float,getattr(pacmonstr_tr,"hap0_copies").split(','))
+            hap0_copy = hap_copy(copies,"hap0_copies",hap0_scores,min_score,stat)
+            if hap0_copy != None:
+                copies.append(hap0_copy)
     else:
-        if getattr(pacmonstr_tr,"hap1_copies") != ".":
-            copies = getattr(pacmonstr_tr,"hap1_copies")
-            if min_score > 0:
-                copies = score_filtered_copies(pacmonstr_tr,"hap1_copies",hap1_scores,min_score)
-            if len(copies) > 0:
-                copies = filter_by_stat(copies,stat)
-        if getattr(pacmonstr_tr,"hap2_copies") != ".":
-            if min_score > 0:
-                hap2_copies = score_filtered_copies(pacmonstr_tr,"hap2_copies",hap2_scores,min_score)
-                if len(hap2_copies) > 0:
-                    copies += filter_by_stat(hap2_copies,stat)
-            else:
-                copies += filter_by_stat(getattr(pacmonstr_tr,"hap2_copies"),stat)
+        if getattr(pacmonstr_tr,"hap1_copies") != "None":
+            copies = map(float,getattr(pacmonstr_tr,"hap1_copies").split(','))
+            hap1_copy = hap_copy(copies,"hap1_copies",hap1_scores,min_score,stat)
+            if hap1_copy != None:
+                copies.append(hap1_copy)
+        if getattr(pacmonstr_tr,"hap2_copies") != "None":
+            copies = map(float,getattr(pacmonstr_tr,"hap2_copies").split(','))
+            hap2_copy = hap_copy(copies,"hap2_copies",hap2_scores,min_score,stat)
+            if hap2_copy != None:
+                copies.append(hap2_copy)
     return copies
     
 def load_sample_trs(trs,fn,stat,min_score):
@@ -94,7 +100,7 @@ def load_sample_trs(trs,fn,stat,min_score):
         "hap2_suffix_scores",
         "hap2_motif_scores"
         ]
-    Str = namedtupled('str',pacmonstr_header)
+    Str = namedtuple('str',pacmonstr_header)
     with open(fn,'r') as fh:
         for i,line in enumerate(fh):
             line = line.rstrip().split('\t')
@@ -104,7 +110,7 @@ def load_sample_trs(trs,fn,stat,min_score):
                 continue
             tr = Str._make(line)
             copies = sample_tr_copies(tr,min_score,stat)
-            trs[(tr.chrom,tr.start,tr.end,tr.motif_seq,tr.copies_in_ref)].append(copies)
+            trs[(tr.chrom,tr.start,tr.end,tr.motif,tr.copies_in_ref)].append(copies)
     return trs
 
 def number_of_samples(trs):
@@ -123,7 +129,7 @@ def number_of_haps(trs):
 def all_alleles(trs):
     alleles = []
     for tr in trs:
-        for alllele in tr:
+        for allele in tr:
             alleles.append(allele)
     return alleles
 
@@ -145,8 +151,9 @@ def merge_trs(**kwargs):
     with open(kwargs["pacmonstr_fofn"],'r') as fofh:
         for fn in fofh:
             fn = fn.rstrip()
-            trs = load_sample_trs(trs,fn)
-    with open(kwargs["outbed"],'w') as fh:        
+            trs = load_sample_trs(trs,fn,kwargs["stat"],kwargs["min_score"])
+    with open(kwargs["outbed"],'w') as fh:
+        fh.write("%s\n" % "\t".join(header))
         for tr in trs:
             tr_copies = trs[tr]
             alleles = all_alleles(tr_copies)
@@ -162,14 +169,14 @@ def merge_trs(**kwargs):
                     alleles_std = round(np.std(np.array(alleles)),2)
                 else:
                     alleles_std = "."
-                uniq_alleles = ",".join(uniq_alleles)
-                alleles = ",".join(alleles)
+                uniq_alleles = ",".join(map(str,uniq_alleles))
+                alleles = ",".join(map(str,alleles))
                 tr_stat = [num_samples,num_haps,num_alleles,max_alleles,
                            alleles_mean,alleles_std,uniq_alleles,alleles]
             else:
                 tr_stat = ["."]*8
             output = list(tr) + tr_stat
-            fh.write("\t".join(output))
+            fh.write("%s\n" % "\t".join(map(str,output)))
             
 def main():
     parser = argparse.ArgumentParser(description='')
@@ -183,7 +190,7 @@ def main():
                         help='Stat to use: either avg or max')
     parser.add_argument('--min_score',type=float,default=0,
                         help='Minimum score to use')
-    parser.add_argument('--allele_dif',type=int,default=1,
+    parser.add_argument('--allele_diff',type=int,default=1,
                         help='Unique allele difference')
     args = parser.parse_args()
     merge_trs(**vars(args))
