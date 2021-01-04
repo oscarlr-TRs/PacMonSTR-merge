@@ -56,3 +56,21 @@ The minimum alignment score of the expected and observed expansion sequence, and
 
 ### allele_diff
 The TR copies between sample can differ due to sequence error. For example sample A might have 3 copies and sample B might have 3.2 copies. However, they both likely have 3 copies. Therefore in order to determine the number of alleles, the alleles between the samples must differ by the `allele_diff`. If `allele_diff` is set to 1, then the alleles will differ by 1. For examples, if the alleles across the samples are `[1.5,1.8,2.2,2.5,5,10]` then the alleles would be `[1.5,2.5,5,10]`.
+
+## Output
+The output is a BED file with 13 columns:
+```
+1. chrom
+2. start
+3. end
+4. motif
+5. copies_in_ref
+6. number_of_samples
+7. number_of_genotyped_haps
+8. num_alleles
+9. max_alleles
+10. alleles_mean
+11. alleles_std
+12. unique_alleles
+13. all_alleles
+```
