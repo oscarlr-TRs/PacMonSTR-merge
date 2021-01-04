@@ -39,7 +39,7 @@ def filter_by_stat(copies,stat):
     else:
         sys.exit("Choose avg or max")
 
-def hap_copy(copies,hap_copies,hap_scores,min_score,stat):
+def hap_copy(pacmonstr_tr,copies,hap_copies,hap_scores,min_score,stat):
     copy = None
     if min_score > 0:
         all_copies = score_filtered_copies(pacmonstr_tr,hap_copies,hap_scores,min_score)
@@ -52,24 +52,24 @@ def hap_copy(copies,hap_copies,hap_scores,min_score,stat):
 def sample_tr_copies(pacmonstr_tr,min_score,stat):
     copies = []
     hap_copies = ["hap0_copies","hap1_copies","hap2_copies"]
-    hap0_scores = [("hap0_prefix_motif_scores","hap0_suffix_motif_scores","hap0_motif_scores")]
-    hap1_scores = [("hap1_prefix_motif_scores","hap1_suffix_motif_scores","hap1_motif_scores")]
-    hap2_scores = [("hap2_prefix_motif_scores","hap2_suffix_motif_scores","hap2_motif_scores")]
+    hap0_scores = ["hap0_prefix_scores","hap0_suffix_scores","hap0_motif_scores"]
+    hap1_scores = ["hap1_prefix_scores","hap1_suffix_scores","hap1_motif_scores"]
+    hap2_scores = ["hap2_prefix_scores","hap2_suffix_scores","hap2_motif_scores"]
     if getattr(pacmonstr_tr,"hap1_copies") == "None" and getattr(pacmonstr_tr,"hap2_copies") == "None":        
         if getattr(pacmonstr_tr,"hap0_copies") != "None":
             copies = map(float,getattr(pacmonstr_tr,"hap0_copies").split(','))
-            hap0_copy = hap_copy(copies,"hap0_copies",hap0_scores,min_score,stat)
+            hap0_copy = hap_copy(pacmonstr_tr,copies,"hap0_copies",hap0_scores,min_score,stat)
             if hap0_copy != None:
                 copies.append(hap0_copy)
     else:
         if getattr(pacmonstr_tr,"hap1_copies") != "None":
             copies = map(float,getattr(pacmonstr_tr,"hap1_copies").split(','))
-            hap1_copy = hap_copy(copies,"hap1_copies",hap1_scores,min_score,stat)
+            hap1_copy = hap_copy(pacmonstr_tr,copies,"hap1_copies",hap1_scores,min_score,stat)
             if hap1_copy != None:
                 copies.append(hap1_copy)
         if getattr(pacmonstr_tr,"hap2_copies") != "None":
             copies = map(float,getattr(pacmonstr_tr,"hap2_copies").split(','))
-            hap2_copy = hap_copy(copies,"hap2_copies",hap2_scores,min_score,stat)
+            hap2_copy = hap_copy(pacmonstr_tr,copies,"hap2_copies",hap2_scores,min_score,stat)
             if hap2_copy != None:
                 copies.append(hap2_copy)
     return copies
@@ -107,6 +107,9 @@ def load_sample_trs(trs,fn,stat,min_score):
             if i == 0:
                 if line != pacmonstr_header:
                     sys.exit("%s does not have the correct header" % fn)
+                continue
+            if len(line) != len(pacmonstr_header):
+                print "%s is messed up" % fn
                 continue
             tr = Str._make(line)
             copies = sample_tr_copies(tr,min_score,stat)
