@@ -39,12 +39,12 @@ def filter_by_stat(copies,stat):
     else:
         sys.exit("Choose avg or max")
 
-def hap_copy(pacmonstr_tr,copies,hap_copies,hap_scores,min_score,stat):
+def hap_copy(pacmonstr_tr,hap_copies,hap_scores,min_score,stat):
     copy = None
     if min_score > 0:
         all_copies = score_filtered_copies(pacmonstr_tr,hap_copies,hap_scores,min_score)
     else:
-        all_copies = copies
+        all_copies = map(float,getattr(pacmonstr_tr,hap_copies).split(','))
     if len(all_copies) != 0:
         copy = filter_by_stat(all_copies,stat)
     return copy
@@ -57,21 +57,19 @@ def sample_tr_copies(pacmonstr_tr,min_score,stat):
     hap2_scores = ["hap2_prefix_scores","hap2_suffix_scores","hap2_motif_scores"]
     if getattr(pacmonstr_tr,"hap1_copies") == "None" and getattr(pacmonstr_tr,"hap2_copies") == "None":        
         if getattr(pacmonstr_tr,"hap0_copies") != "None":
-            copies = map(float,getattr(pacmonstr_tr,"hap0_copies").split(','))
-            hap0_copy = hap_copy(pacmonstr_tr,copies,"hap0_copies",hap0_scores,min_score,stat)
+            hap0_copy = hap_copy(pacmonstr_tr,"hap0_copies",hap0_scores,min_score,stat)
             if hap0_copy != None:
-                copies.append(hap0_copy)
+                copies = [hap0_copy]
     else:
         if getattr(pacmonstr_tr,"hap1_copies") != "None":
-            copies = map(float,getattr(pacmonstr_tr,"hap1_copies").split(','))
-            hap1_copy = hap_copy(pacmonstr_tr,copies,"hap1_copies",hap1_scores,min_score,stat)
+            hap1_copy = hap_copy(pacmonstr_tr,"hap1_copies",hap1_scores,min_score,stat)
             if hap1_copy != None:
                 copies.append(hap1_copy)
         if getattr(pacmonstr_tr,"hap2_copies") != "None":
-            copies = map(float,getattr(pacmonstr_tr,"hap2_copies").split(','))
-            hap2_copy = hap_copy(pacmonstr_tr,copies,"hap2_copies",hap2_scores,min_score,stat)
+            hap2_copy = hap_copy(pacmonstr_tr,"hap2_copies",hap2_scores,min_score,stat)
             if hap2_copy != None:
                 copies.append(hap2_copy)
+    assert len(copies) < 3
     return copies
     
 def load_sample_trs(trs,fn,stat,min_score):
