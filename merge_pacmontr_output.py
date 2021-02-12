@@ -72,7 +72,7 @@ def sample_tr_copies(pacmonstr_tr,min_score,stat):
     assert len(copies) < 3
     return copies
     
-def load_sample_trs(trs,fn,stat,min_score):
+def load_sample_trs(trs,fn,sample_name,stat,min_score):
     pacmonstr_header = [
         "chrom",
         "start",
@@ -111,7 +111,7 @@ def load_sample_trs(trs,fn,stat,min_score):
                 continue
             tr = Str._make(line)
             copies = sample_tr_copies(tr,min_score,stat)
-            trs[(tr.chrom,tr.start,tr.end,tr.motif,tr.copies_in_ref)].append(copies)
+            trs[(tr.chrom,tr.start,tr.end,tr.motif,tr.copies_in_ref)].append((sample_name,copies))
     return trs
 
 def number_of_samples(trs):
@@ -129,10 +129,15 @@ def number_of_haps(trs):
 
 def all_alleles(trs):
     alleles = []
-    for tr in trs:
+    sample_names = []
+    for sample_name,tr in trs:
+        sample_added = False
         for allele in tr:
+            sample_added = True
             alleles.append(allele)
-    return alleles
+        if sample_added:
+            sample_names.append("%s_%s" % (sample_name,len(tr)))
+    return (alleles,sample_names)
 
 def unique_alleles(alleles,diff):
     smallest_allele = min(alleles)
@@ -147,17 +152,20 @@ def unique_alleles(alleles,diff):
 def merge_trs(**kwargs):
     header = ["chrom","start","end","motif","copies_in_ref",
               "number_of_samples","number_of_genotyped_haps","num_alleles","max_alleles",
-              "alleles_mean","alleles_std","unique_alleles","all_alleles"]
+              "alleles_mean","alleles_std","unique_alleles","all_alleles","all_samples"]
     trs = load_trs(kwargs["trbed"])
     with open(kwargs["pacmonstr_fofn"],'r') as fofh:
-        for fn in fofh:
-            fn = fn.rstrip()
-            trs = load_sample_trs(trs,fn,kwargs["stat"],kwargs["min_score"])
+        for line in fofh:
+            line = line.rstrip().split('\t')
+            sample_name = line[0]
+            fn = line[1]
+            trs = load_sample_trs(trs,fn,sample_name,kwargs["stat"],kwargs["min_score"])
     with open(kwargs["outbed"],'w') as fh:
         fh.write("%s\n" % "\t".join(header))
         for tr in trs:
-            tr_copies = trs[tr]
-            alleles = all_alleles(tr_copies)
+            tr_copies_with_samples = trs[tr]
+            alleles,sample_names = all_alleles(tr_copies_with_samples)
+            tr_copies = [i[1] for i in tr_copies_with_samples]
             if len(alleles) > 0:
                 uniq_alleles = unique_alleles(alleles,kwargs["allele_diff"])
                 
@@ -172,10 +180,11 @@ def merge_trs(**kwargs):
                     alleles_std = "."
                 uniq_alleles = ",".join(map(str,uniq_alleles))
                 alleles = ",".join(map(str,alleles))
+                samples = ",".join(sample_names)
                 tr_stat = [num_samples,num_haps,num_alleles,max_alleles,
-                           alleles_mean,alleles_std,uniq_alleles,alleles]
+                           alleles_mean,alleles_std,uniq_alleles,alleles,samples]
             else:
-                tr_stat = ["."]*8
+                tr_stat = ["."]*9
             output = list(tr) + tr_stat
             fh.write("%s\n" % "\t".join(map(str,output)))
             
