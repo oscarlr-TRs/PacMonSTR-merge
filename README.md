@@ -42,10 +42,10 @@ This file must be the exact bed file used in PacMonSTR with the following column
 ### fofn
 This file contains the output paths from PacMonSTR. For example:
 ```
-/genotype_tr/HG00438/Y/4_trs.bed
-/genotype_tr/HG00621/Y/4_trs.bed
-/genotype_tr/HG00673/Y/4_trs.bed
-/genotype_tr/HG00735/Y/4_trs.bed
+HG00438 /genotype_tr/HG00438/Y/4_trs.bed
+HG00621 /genotype_tr/HG00621/Y/4_trs.bed
+HG00673 /genotype_tr/HG00673/Y/4_trs.bed
+HG00735 /genotype_tr/HG00735/Y/4_trs.bed
 ```
 ## Input optional params
 ### stat
